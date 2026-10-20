@@ -12,7 +12,8 @@ from .decorators import admin_required
 from .forms import EMAIL_SUDAH_ADA, BookingForm, AlamatForm, EmailLoginForm, ProfilAkunForm, SignUpForm, TagihanForm
 from . import panel
 from .pesanan import konteks_pesanan_saya
-from .models import Alamat, Booking, PoinLog, Profile, TagihanTerkunci
+from .kotak_notifikasi import KotakNotifikasi
+from .models import Alamat, Booking, Notifikasi, PoinLog, Profile, TagihanTerkunci
 from .poin import konteks_poin_hadiah, pesanan_aktif, saldo_poin, tautkan_booking
 from .riwayat import RiwayatPesanan
 from .services import MAKS_ALAMAT, PROVINSI, SERVICES, WILAYAH, rupiah
@@ -130,6 +131,7 @@ def _konteks_dasar(user, role):
     return {
         'peran': role,
         'pesanan_aktif': pesanan_aktif(user).count() if role != Profile.Role.ADMIN else 0,  # lencana sidebar
+        'notif_belum': Notifikasi.jumlah_belum_dibaca(user) if role != Profile.Role.ADMIN else 0,  # titik di lonceng
         'nama': nama,
         'nama_depan': nama_depan,
         'inisial': ''.join(kata[0] for kata in nama.split()[:2]).upper(),
@@ -396,4 +398,24 @@ def riwayat_pesanan(request):
         'riwayat': riwayat,
         'ringkasan': riwayat.ringkasan(),
         'halaman': riwayat.halaman(request.GET.get('page')),
+    })
+
+
+@login_required
+def notifikasi(request):
+    """Halaman "Notifikasi": kabar pesanan, poin, dan hadiah milik pelanggan + filter dan tandai semua dibaca."""
+    role = Profile.untuk(request.user).role
+    if role == Profile.Role.ADMIN:
+        return redirect('admin_dashboard')
+    kotak = KotakNotifikasi(request.user, request.GET)
+    if request.method == 'POST' and request.POST.get('aksi') == 'tandai_semua':
+        jumlah = kotak.tandai_semua_dibaca()
+        messages.success(request, f'{jumlah} notifikasi ditandai sudah dibaca.' if jumlah
+                         else 'Semua notifikasi sudah dibaca.')
+        return redirect(request.get_full_path())  # kembali ke halaman yang sama, filter tetap
+    return render(request, 'laundry/notifikasi.html', {
+        **_konteks_dasar(request.user, role),
+        'kotak': kotak,
+        'halaman': kotak.halaman(request.GET.get('page')),
+        'whatsapp_admin': settings.WHATSAPP_ADMIN,
     })

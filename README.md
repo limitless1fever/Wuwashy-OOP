@@ -16,7 +16,7 @@ Aplikasi web layanan laundry berbasis **Django**. Pelanggan bisa memesan penjemp
 - **Riwayat pesanan** (`/riwayat/`): ringkasan (pesanan selesai, total transaksi, poin didapat), filter (nomor/layanan, periode, layanan), pembagian halaman, tombol Pesan lagi. Logikanya ada di `laundry/riwayat.py`.
 - **Pencarian pesanan**: kolom cari di header dashboard pelanggan (`/cari/`) menemukan pesanan milik akun itu, semua status.
 - **Tagihan di panel admin**: admin mengisi berat hasil timbang dan koreksi harga di halaman detail pesanan. Tagihan dikunci setelah poin diberikan.
-- **Notifikasi (data)**: setiap pesanan baru dan perubahan status otomatis membuat `Notifikasi` untuk pemilik akun. Halaman tampilannya belum dibuat.
+- **Notifikasi** (`/notifikasi/`): setiap pesanan baru, perubahan status, poin masuk, dan hadiah yang sudah bisa ditukar otomatis membuat `Notifikasi` untuk pemilik akun. Halamannya punya filter (Semua, Belum dibaca, Pesanan, Poin & hadiah), pembagian halaman, tombol Tandai semua dibaca, dan titik biru di ikon lonceng header selama ada yang belum dibaca. Pembuatnya ada di `laundry/notifikasi.py` (tiap kelas menentukan ikon dan tautannya sendiri), logika halamannya di `laundry/kotak_notifikasi.py`.
 - **Penautan pesanan ke akun**: akun yang sedang login diprioritaskan, lalu nomor WhatsApp yang cocok tepat satu akun, dan terakhir dicatat sebagai tamu.
 
 ## Teknologi
@@ -128,6 +128,7 @@ Untuk mengembalikan password akun uji ke nilai bawaan: `python manage.py seed_us
 | `/pesanan/` | Pesanan saya | USER |
 | `/cari/?q=` | Hasil pencarian nomor pesanan | USER |
 | `/riwayat/` | Riwayat pesanan (selesai/dibatalkan, filter, halaman) | USER |
+| `/notifikasi/` | Notifikasi pesanan, poin, dan hadiah (filter, tandai dibaca) | USER |
 | `/poin/` | Poin dan hadiah | USER |
 | `/panel/` | Dashboard admin | ADMIN |
 | `/panel/pesanan/<id>/` | Detail pesanan dan ubah status | ADMIN |
@@ -144,7 +145,8 @@ Pengunjung yang belum login lalu membuka halaman USER atau ADMIN akan diarahkan 
 ├── config/                  # pengaturan proyek (settings, urls, wsgi/asgi)
 └── laundry/                 # aplikasi utama
     ├── models.py            # Booking, Profile, Alamat, PoinLog, Notifikasi
-    ├── notifikasi.py        # pembuat notifikasi (kelas abstrak + subkelas per status)
+    ├── notifikasi.py        # pembuat notifikasi (kelas abstrak + subkelas per status, poin, hadiah)
+    ├── kotak_notifikasi.py  # data halaman Notifikasi (filter, hitungan, pembagian halaman)
     ├── views.py, urls.py    # halaman dan routing
     ├── forms.py             # form booking, login, signup, akun saya, dan tagihan
     ├── poin.py, services.py # logika poin, katalog layanan, dan hadiah
@@ -174,7 +176,7 @@ Daftar layanan dan harga ada di `SERVICES`, sedangkan katalog hadiah di `HADIAH`
 python manage.py test
 ```
 
-> Semua tes lulus (133 tes). Tes fitur akun, pencarian, tagihan, notifikasi, dan konfigurasi produksi ada di `laundry/tests_akun.py`.
+> Semua tes lulus (208 tes). Tes fitur akun, pencarian, tagihan, notifikasi (data), dan konfigurasi produksi ada di `laundry/tests_akun.py`; tes halaman Notifikasi di `laundry/tests_notifikasi.py`.
 
 ## Kolaborasi tim dan mencegah merge conflict
 
