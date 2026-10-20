@@ -14,6 +14,7 @@ from . import panel
 from .pesanan import konteks_pesanan_saya
 from .models import Alamat, Booking, PoinLog, Profile, TagihanTerkunci
 from .poin import konteks_poin_hadiah, pesanan_aktif, saldo_poin, tautkan_booking
+from .riwayat import RiwayatPesanan
 from .services import MAKS_ALAMAT, PROVINSI, SERVICES, WILAYAH, rupiah
 
 KEUNGGULAN = [
@@ -380,4 +381,19 @@ def alamat_saya(request):
         'wilayah': WILAYAH,
         'provinsi': PROVINSI,
         'whatsapp_admin': settings.WHATSAPP_ADMIN,
+    })
+
+
+@login_required
+def riwayat_pesanan(request):
+    """Halaman "Riwayat pesanan": pesanan selesai/dibatalkan + ringkasan, filter, dan pembagian halaman."""
+    role = Profile.untuk(request.user).role
+    if role == Profile.Role.ADMIN:
+        return redirect('admin_dashboard')
+    riwayat = RiwayatPesanan(request.user, request.GET)
+    return render(request, 'laundry/riwayat_pesanan.html', {
+        **_konteks_dasar(request.user, role),
+        'riwayat': riwayat,
+        'ringkasan': riwayat.ringkasan(),
+        'halaman': riwayat.halaman(request.GET.get('page')),
     })

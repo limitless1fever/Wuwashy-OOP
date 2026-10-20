@@ -13,6 +13,7 @@ Aplikasi web layanan laundry berbasis **Django**. Pelanggan bisa memesan penjemp
 - **Sistem poin**: setiap Rp1.000 total pesanan = 1 poin. Poin masuk otomatis saat status pesanan menjadi `selesai` dan hanya dicatat satu kali per pesanan.
 - **Akun saya** (`/akun/`): pelanggan mengubah nama, nama panggilan, WhatsApp, dan tanggal lahir. Email hanya bisa dibaca karena dipakai untuk login.
 - **Alamat saya** (`/alamat/`): pelanggan menyimpan beberapa alamat (label, penerima, WhatsApp, kecamatan, kota, kode pos, catatan kurir). Satu alamat menjadi alamat utama, yang otomatis mengisi form booking dan tampil di kartu alamat Beranda, Pesanan saya, dan Akun saya. Daftar kota dan kecamatan ada di `WILAYAH` (`laundry/services.py`).
+- **Riwayat pesanan** (`/riwayat/`): ringkasan (pesanan selesai, total transaksi, poin didapat), filter (nomor/layanan, periode, layanan), pembagian halaman, tombol Pesan lagi. Logikanya ada di `laundry/riwayat.py`.
 - **Pencarian pesanan**: kolom cari di header dashboard pelanggan (`/cari/`) menemukan pesanan milik akun itu, semua status.
 - **Tagihan di panel admin**: admin mengisi berat hasil timbang dan koreksi harga di halaman detail pesanan. Tagihan dikunci setelah poin diberikan.
 - **Notifikasi (data)**: setiap pesanan baru dan perubahan status otomatis membuat `Notifikasi` untuk pemilik akun. Halaman tampilannya belum dibuat.
@@ -126,6 +127,7 @@ Untuk mengembalikan password akun uji ke nilai bawaan: `python manage.py seed_us
 | `/alamat/` | Alamat saya (banyak alamat: tambah, ubah, jadikan utama, hapus) | USER |
 | `/pesanan/` | Pesanan saya | USER |
 | `/cari/?q=` | Hasil pencarian nomor pesanan | USER |
+| `/riwayat/` | Riwayat pesanan (selesai/dibatalkan, filter, halaman) | USER |
 | `/poin/` | Poin dan hadiah | USER |
 | `/panel/` | Dashboard admin | ADMIN |
 | `/panel/pesanan/<id>/` | Detail pesanan dan ubah status | ADMIN |
