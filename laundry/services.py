@@ -45,6 +45,26 @@ def normalisasi_wa(nomor):
     return digit if digit.startswith('62') and 10 <= len(digit) <= 16 else ''
 
 
+def wa_lokal(nomor):
+    """Nomor tersimpan -> tampilan lokal: 6281234567890 -> 0812 3456 7890."""
+    n = str(nomor or '')
+    if n.startswith('62'):
+        n = '0' + n[2:]
+    return ' '.join(bagian for bagian in (n[:4], n[4:8], n[8:]) if bagian)
+
+
+# Wilayah untuk form alamat (kota -> daftar kecamatan). Tambah kota baru cukup dengan menambah baris di sini.
+PROVINSI = 'Kalimantan Timur'
+WILAYAH = {
+    'Samarinda': ['Loa Janan Ilir', 'Palaran', 'Samarinda Ilir', 'Samarinda Kota', 'Samarinda Seberang',
+                  'Samarinda Ulu', 'Samarinda Utara', 'Sambutan', 'Sungai Kunjang', 'Sungai Pinang'],
+    'Balikpapan': ['Balikpapan Barat', 'Balikpapan Kota', 'Balikpapan Selatan', 'Balikpapan Tengah',
+                   'Balikpapan Timur', 'Balikpapan Utara'],
+    'Bontang': ['Bontang Barat', 'Bontang Selatan', 'Bontang Utara'],
+}
+MAKS_ALAMAT = 10  # batas alamat tersimpan per akun
+
+
 # Katalog hadiah (sesuai desain "Poin & hadiah"). Urutkan dari poin terkecil.
 HADIAH = [
     {'key': 'voucher-5000', 'nama': 'Voucher Rp 5.000', 'poin': 500, 'warna': 'biru'},

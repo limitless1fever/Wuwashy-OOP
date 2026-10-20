@@ -508,7 +508,9 @@ class PoinTests(TestCase):
     def _pesanan(self, **kw):
         b = buat_booking(**kw)
         Booking.objects.filter(pk=b.pk).update(user=self.user, asal='akun')
-        return Booking.objects.get(pk=b.pk)
+        b = Booking.objects.get(pk=b.pk)
+        b.save()  # akun dipasang setelah pesanan dibuat; simpan ulang agar signal poin ikut jalan seperti di aplikasi
+        return b
 
     def test_poin_masuk_saat_selesai_rp1000_satu_poin(self):
         b = self._pesanan(layanan='express', berat='5')  # 60.000 -> 60 poin

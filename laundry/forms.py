@@ -1,11 +1,15 @@
+from datetime import date
+from decimal import Decimal
+
 from django import forms
 from django.contrib.auth import get_user_model
 from django.contrib.auth.forms import AuthenticationForm
 from django.contrib.auth.password_validation import validate_password
 from django.core.exceptions import ValidationError
+from django.db import transaction
 
-from .models import Booking, Profile
-from .services import normalisasi_wa
+from .models import Alamat, Booking, Profile
+from .services import MAKS_ALAMAT, PROVINSI, WILAYAH, normalisasi_wa
 
 
 class BookingForm(forms.ModelForm):
@@ -174,3 +178,213 @@ class SignUpForm(forms.Form):
         )
         Profile.objects.filter(user=user).update(whatsapp=self.cleaned_data['whatsapp'])
         return user
+
+
+class FormDasar(forms.Form):
+    """Kelas dasar untuk form non-model di halaman dashboard.
+
+    OOP - Pewarisan: ProfilAkunForm dan TagihanForm mewarisi kelas ini, jadi aturan umum
+    (label tanpa titik dua) ditulis satu kali saja.
+    """
+
+    def __init__(self, *args, **kwargs):
+        kwargs.setdefault('label_suffix', '')
+        super().__init__(*args, **kwargs)
+
+
+class FormProfil(FormDasar):
+    """Dasar form yang mengubah data milik SATU akun (User + Profile).
+
+    OOP - Pewarisan: ProfilAkunForm mewarisi kelas ini, jadi pengambilan user/profil dan nilai awal form
+    ditulis di satu tempat.
+    OOP - Enkapsulasi: user dan profil disimpan di atribut internal (_user, _profile).
+    OOP - Polimorfisme: view cukup memanggil is_valid() lalu simpan() pada form mana pun; tiap subkelas
+    menyimpan bagian datanya sendiri.
+    """
+
+    def __init__(self, data=None, *, user, **kwargs):
+        self._user = user
+        self._profile = Profile.untuk(user)
+        kwargs.setdefault('initial', self._nilai_awal())
+        super().__init__(data, **kwargs)
+
+    def _nilai_awal(self):
+        return {}
+
+    def simpan(self):
+        raise NotImplementedError('Subkelas harus mengimplementasikan simpan().')
+
+
+class ProfilAkunForm(FormProfil):
+    """Form halaman "Akun saya": data pribadi dan kontak. Alamat diurus di halaman "Alamat saya".
+
+    Email sengaja TIDAK ada di form ini: email dipakai untuk login, jadi hanya bisa dibaca.
+    """
+
+    nama_lengkap = forms.CharField(label='Nama lengkap', max_length=100,
+                                   error_messages={'required': 'Nama lengkap wajib diisi.'})
+    nama_panggilan = forms.CharField(label='Nama panggilan', max_length=50, required=False)
+    whatsapp = forms.CharField(label='Nomor WhatsApp', max_length=20,
+                               widget=forms.TextInput(attrs={'inputmode': 'tel'}),
+                               error_messages={'required': 'Nomor WhatsApp wajib diisi.'})
+    tanggal_lahir = forms.DateField(label='Tanggal lahir', required=False,
+                                    widget=forms.DateInput(attrs={'type': 'date'}, format='%Y-%m-%d'),
+                                    error_messages={'invalid': 'Tanggal lahir tidak valid.'})
+
+    def _nilai_awal(self):
+        u, p = self._user, self._profile
+        return {
+            'nama_lengkap': u.get_full_name().strip(),
+            'nama_panggilan': p.nama_panggilan,
+            'whatsapp': p.whatsapp_tampil,
+            'tanggal_lahir': p.tanggal_lahir,
+        }
+
+    def clean_nama_lengkap(self):
+        return ' '.join(self.cleaned_data['nama_lengkap'].split())
+
+    def clean_nama_panggilan(self):
+        return ' '.join(self.cleaned_data['nama_panggilan'].split())
+
+    def clean_whatsapp(self):
+        nomor = normalisasi_wa(self.cleaned_data['whatsapp'])
+        if not nomor:
+            raise ValidationError('Nomor WhatsApp tidak valid. Contoh: 08123456789')
+        # satu nomor = satu akun (agar pesanan tamu tidak salah tertaut), kecuali milik akun ini sendiri
+        if Profile.objects.filter(whatsapp=nomor).exclude(pk=self._profile.pk).exists():
+            raise ValidationError('Nomor ini sudah dipakai akun lain.')
+        return nomor
+
+    def clean_tanggal_lahir(self):
+        tgl = self.cleaned_data['tanggal_lahir']
+        if tgl and (tgl > date.today() or tgl.year < 1900):
+            raise ValidationError('Tanggal lahir tidak valid.')
+        return tgl
+
+    def simpan(self):
+        d = self.cleaned_data
+        depan, _, belakang = d['nama_lengkap'].partition(' ')
+        self._user.first_name, self._user.last_name = depan, belakang
+        self._user.save(update_fields=['first_name', 'last_name'])
+        p = self._profile
+        p.nama_panggilan, p.whatsapp, p.tanggal_lahir = d['nama_panggilan'], d['whatsapp'], d['tanggal_lahir']
+        p.save()
+        return self._user
+
+
+class AlamatForm(forms.ModelForm):
+    """Form tambah/ubah satu alamat antar-jemput (halaman "Alamat saya").
+
+    OOP - Pewarisan: mewarisi ModelForm bawaan Django (validasi dan pemetaan field ke model Alamat gratis),
+    lalu menambah aturan khusus: kecamatan harus milik kota yang dipilih, kode pos 5 angka, dan batas jumlah alamat.
+    OOP - Enkapsulasi: akun pemilik disimpan di atribut internal _user, dan seluruh proses penyimpanan
+    (termasuk memindahkan status "alamat utama") dibungkus method simpan().
+    """
+
+    kota = forms.ChoiceField(label='Kota', choices=[(k, k) for k in WILAYAH])
+    kecamatan = forms.ChoiceField(label='Kecamatan',
+                                  error_messages={'invalid_choice': 'Pilih kecamatan yang sesuai dengan kota.',
+                                                  'required': 'Pilih kecamatan.'})
+    utama = forms.BooleanField(label='Jadikan sebagai alamat utama', required=False)  # bukan field Meta: diproses manual
+
+    class Meta:
+        model = Alamat
+        fields = ['label', 'nama_penerima', 'whatsapp', 'alamat_lengkap', 'kecamatan', 'kota', 'kode_pos', 'catatan_kurir']
+        labels = {'label': 'Label alamat', 'nama_penerima': 'Nama penerima', 'whatsapp': 'Nomor WhatsApp',
+                  'alamat_lengkap': 'Alamat lengkap', 'kode_pos': 'Kode pos', 'catatan_kurir': 'Catatan untuk kurir'}
+        widgets = {
+            'label': forms.TextInput(attrs={'placeholder': 'Contoh: Rumah, Kantor, Kos', 'maxlength': 30}),
+            'nama_penerima': forms.TextInput(attrs={'autocomplete': 'name'}),
+            'whatsapp': forms.TextInput(attrs={'inputmode': 'tel'}),
+            'alamat_lengkap': forms.TextInput(attrs={'placeholder': 'Jalan, nomor rumah, RT/RW'}),
+            'kode_pos': forms.TextInput(attrs={'inputmode': 'numeric', 'maxlength': 5}),
+            'catatan_kurir': forms.Textarea(attrs={'rows': 3, 'placeholder': 'Contoh: Bangunan kedua, pagar abu-abu'}),
+        }
+        error_messages = {
+            'label': {'required': 'Label alamat wajib diisi.'},
+            'nama_penerima': {'required': 'Nama penerima wajib diisi.'},
+            'whatsapp': {'required': 'Nomor WhatsApp wajib diisi.'},
+            'alamat_lengkap': {'required': 'Alamat lengkap wajib diisi.'},
+        }
+
+    def __init__(self, *args, user, **kwargs):
+        self._user = user
+        kwargs.setdefault('label_suffix', '')
+        super().__init__(*args, **kwargs)
+        self.fields['kode_pos'].required = False
+        self.fields['catatan_kurir'].required = False
+        if not self.instance.pk:  # alamat baru: isi nama dan WhatsApp dari akun sebagai saran
+            self.initial.setdefault('nama_penerima', user.get_full_name().strip())
+            self.initial.setdefault('whatsapp', Profile.untuk(user).whatsapp_tampil)
+            self.initial.setdefault('kota', next(iter(WILAYAH)))
+        else:
+            self.initial['whatsapp'] = self.instance.whatsapp_tampil
+            self.initial['utama'] = self.instance.utama
+        # pilihan kecamatan mengikuti kota yang sedang dipilih (data terkirim, alamat yang diubah, atau bawaan)
+        kota = self.data.get('kota') if self.is_bound else self.initial.get('kota')
+        self.fields['kecamatan'].choices = [('', 'Pilih kecamatan')] + [(k, k) for k in WILAYAH.get(kota, [])]
+
+    def clean_label(self):
+        return ' '.join(self.cleaned_data['label'].split())
+
+    def clean_nama_penerima(self):
+        return ' '.join(self.cleaned_data['nama_penerima'].split())
+
+    def clean_whatsapp(self):
+        nomor = normalisasi_wa(self.cleaned_data['whatsapp'])
+        if not nomor:
+            raise ValidationError('Nomor WhatsApp tidak valid. Contoh: 08123456789')
+        return nomor
+
+    def clean_alamat_lengkap(self):
+        alamat = ' '.join(self.cleaned_data['alamat_lengkap'].split())
+        if len(alamat) < 8:
+            raise ValidationError('Tulis alamat selengkap mungkin (jalan dan nomor).')
+        return alamat
+
+    def clean_kode_pos(self):
+        kode = self.cleaned_data['kode_pos'].strip()
+        if kode and not (kode.isdigit() and len(kode) == 5):
+            raise ValidationError('Kode pos terdiri dari 5 angka.')
+        return kode
+
+    def clean(self):
+        data = super().clean()
+        if not self.instance.pk and Alamat.objects.filter(user=self._user).count() >= MAKS_ALAMAT:
+            raise ValidationError(f'Alamat tersimpan sudah mencapai batas {MAKS_ALAMAT}. Hapus salah satu dulu.')
+        return data
+
+    @transaction.atomic
+    def simpan(self):
+        alamat = super().save(commit=False)
+        alamat.user = self._user
+        alamat.provinsi = PROVINSI
+        alamat.save()
+        if self.cleaned_data.get('utama'):
+            alamat.jadikan_utama()
+        return alamat
+
+
+class TagihanForm(FormDasar):
+    """Form admin: berat hasil timbang dan koreksi harga satu pesanan."""
+
+    berat_final = forms.DecimalField(label='Berat/jumlah hasil timbang', max_digits=5, decimal_places=1,
+                                     min_value=Decimal('0.1'),
+                                     widget=forms.NumberInput(attrs={'step': '0.1', 'min': '0.1'}),
+                                     error_messages={'required': 'Isi berat/jumlah hasil timbang.',
+                                                     'min_value': 'Berat minimal 0,1.', 'invalid': 'Angka tidak valid.'})
+    koreksi_harga = forms.IntegerField(label='Koreksi harga (Rp)', required=False, min_value=-10_000_000,
+                                       max_value=10_000_000, initial=0,
+                                       widget=forms.NumberInput(attrs={'step': '500'}),
+                                       error_messages={'invalid': 'Angka tidak valid.'})
+    catatan_koreksi = forms.CharField(label='Alasan koreksi', max_length=120, required=False,
+                                      widget=forms.TextInput(attrs={'placeholder': 'Contoh: Noda membandel, biaya tambahan'}))
+
+    def clean_koreksi_harga(self):
+        return self.cleaned_data.get('koreksi_harga') or 0
+
+    def clean(self):
+        data = super().clean()
+        if data.get('koreksi_harga') and not (data.get('catatan_koreksi') or '').strip():
+            self.add_error('catatan_koreksi', 'Isi alasan koreksi harga.')
+        return data
