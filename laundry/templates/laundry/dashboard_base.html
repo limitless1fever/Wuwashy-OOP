@@ -56,7 +56,7 @@
       <a class="nav-item{% if aktif == 'dashboard' %} is-active{% endif %}" href="{% url 'dashboard' %}"{% if aktif == 'dashboard' %} aria-current="page"{% endif %}><svg class="ic"><use href="#i-home"/></svg>Beranda</a>
       <a class="nav-item{% if aktif == 'akun_saya' %} is-active{% endif %}" href="{% url 'akun_saya' %}"{% if aktif == 'akun_saya' %} aria-current="page"{% endif %}><svg class="ic"><use href="#i-user"/></svg>Akun saya</a>
       <a class="nav-item{% if aktif == 'pesanan_saya' %} is-active{% endif %}" href="{% url 'pesanan_saya' %}"{% if aktif == 'pesanan_saya' %} aria-current="page"{% endif %}><svg class="ic"><use href="#i-logo"/></svg>Pesanan saya{% if pesanan_aktif %}<span class="badge">{{ pesanan_aktif }}</span>{% endif %}</a>
-      <span class="nav-item is-soon" title="Segera hadir"><svg class="ic"><use href="#i-history"/></svg>Riwayat pesanan</span>
+      <a class="nav-item{% if request.resolver_match.url_name == 'riwayat_pesanan' %} is-active{% endif %}" href="{% url 'riwayat_pesanan' %}"{% if request.resolver_match.url_name == 'riwayat_pesanan' %} aria-current="page"{% endif %}><svg class="ic"><use href="#i-history"/></svg>Riwayat pesanan</a>
       <a class="nav-item{% if aktif == 'poin_hadiah' %} is-active{% endif %}" href="{% url 'poin_hadiah' %}"{% if aktif == 'poin_hadiah' %} aria-current="page"{% endif %}><svg class="ic"><use href="#i-gift"/></svg>Poin &amp; hadiah</a>
       {% endwith %}
       <a class="nav-item{% if request.resolver_match.url_name == 'alamat_saya' %} is-active{% endif %}" href="{% url 'alamat_saya' %}"{% if request.resolver_match.url_name == 'alamat_saya' %} aria-current="page"{% endif %}><svg class="ic"><use href="#i-pin"/></svg>Alamat saya</a>
