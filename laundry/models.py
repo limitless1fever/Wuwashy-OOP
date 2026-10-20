@@ -5,6 +5,8 @@ from decimal import Decimal
 from django.conf import settings
 from django.db import models, transaction
 from django.db.models import Q
+from django.template.defaultfilters import date as format_tanggal
+from django.utils import timezone
 from .services import CHOICES, LAYANAN, PROVINSI, hitung_poin, normalisasi_wa, rupiah, wa_lokal
 
 
@@ -227,8 +229,13 @@ class PoinLog(models.Model):
 class Notifikasi(models.Model):
     """Pemberitahuan untuk pelanggan, dibuat otomatis saat status pesanannya berubah (lihat notifikasi.py)."""
 
+    # Tipe yang masuk kategori "Poin & hadiah"; tipe lain (status pesanan) masuk kategori "Pesanan".
+    TIPE_POIN = ('poin', 'hadiah')
+
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='notifikasi')
     booking = models.ForeignKey(Booking, null=True, blank=True, on_delete=models.SET_NULL, related_name='notifikasi')
+    # Kode kejadian pembuatnya: status pesanan ('diproses', ...), 'poin', atau 'hadiah'. Dipakai memilih ikon dan tautan.
+    tipe = models.CharField(max_length=20, blank=True)
     judul = models.CharField(max_length=100)
     isi = models.CharField(max_length=255)
     dibaca = models.BooleanField(default=False)
@@ -241,6 +248,18 @@ class Notifikasi(models.Model):
     @classmethod
     def jumlah_belum_dibaca(cls, user):
         return cls.objects.filter(user=user, dibaca=False).count()
+
+    @property
+    def kategori(self):
+        return 'Poin & hadiah' if self.tipe in self.TIPE_POIN else 'Pesanan'
+
+    @property
+    def waktu_tampil(self):
+        """'Hari ini · 10.45', 'Kemarin · 16.30', atau '2 Oktober 2026 · 16.30' (jam lokal)."""
+        lokal = timezone.localtime(self.dibuat)
+        hari = (timezone.localtime().date() - lokal.date()).days
+        tanggal = {0: 'Hari ini', 1: 'Kemarin'}.get(hari) or format_tanggal(lokal, 'j F Y')
+        return f"{tanggal} \u00b7 {format_tanggal(lokal, 'H.i')}"
 
     def __str__(self):
         return f'{self.user} - {self.judul}'

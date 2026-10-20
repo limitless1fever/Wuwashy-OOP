@@ -32,6 +32,9 @@
   <symbol id="i-info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M12 11v5M12 8v.01"/></symbol>
   <symbol id="i-check" viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></symbol>
   <symbol id="i-menu" viewBox="0 0 24 24"><path d="M4 7h16M8 12h12M4 17h16"/></symbol>
+  <symbol id="i-truck" viewBox="0 0 24 24"><path d="M3 6.5h11V16H3z"/><path d="M14 9.5h3.8L21 12.8V16h-7"/><circle cx="7.5" cy="17.5" r="1.8"/><circle cx="17" cy="17.5" r="1.8"/></symbol>
+  <symbol id="i-iron" viewBox="0 0 24 24"><path d="M3.5 18h16.7a1 1 0 0 0 1-1.2C20.5 12.2 17 9 12.5 9H8.5a5 5 0 0 0-5 5v4z"/><path d="M8 13.5h6.5"/></symbol>
+  <symbol id="i-sparkles" viewBox="0 0 24 24"><path d="M11 3.5l1.9 5.6 5.6 1.9-5.6 1.9L11 18.5l-1.9-5.6L3.5 11l5.6-1.9L11 3.5z"/><path d="M19 15v4M17 17h4M5 18v2M4 19h2"/></symbol>
 </defs></svg>
 
 <div class="app">
@@ -60,7 +63,7 @@
       <a class="nav-item{% if aktif == 'poin_hadiah' %} is-active{% endif %}" href="{% url 'poin_hadiah' %}"{% if aktif == 'poin_hadiah' %} aria-current="page"{% endif %}><svg class="ic"><use href="#i-gift"/></svg>Poin &amp; hadiah</a>
       {% endwith %}
       <a class="nav-item{% if request.resolver_match.url_name == 'alamat_saya' %} is-active{% endif %}" href="{% url 'alamat_saya' %}"{% if request.resolver_match.url_name == 'alamat_saya' %} aria-current="page"{% endif %}><svg class="ic"><use href="#i-pin"/></svg>Alamat saya</a>
-      <span class="nav-item is-soon" title="Segera hadir"><svg class="ic"><use href="#i-bell"/></svg>Notifikasi</span>
+      <a class="nav-item{% if request.resolver_match.url_name == 'notifikasi' %} is-active{% endif %}" href="{% url 'notifikasi' %}"{% if request.resolver_match.url_name == 'notifikasi' %} aria-current="page"{% endif %}><svg class="ic"><use href="#i-bell"/></svg>Notifikasi</a>
       <span class="nav-item is-soon" title="Segera hadir"><svg class="ic"><use href="#i-search"/></svg>Lacak resi</span>
       {% endblock %}
     </nav>
@@ -91,7 +94,7 @@
           <svg class="ic"><use href="#i-search"/></svg>
           <input type="search" name="q" value="{{ q|default:'' }}" placeholder="Cari nomor pesanan..." aria-label="Cari nomor pesanan" autocomplete="off">
         </form>
-        <span class="bell is-soon" title="Segera hadir" role="img" aria-label="Notifikasi (segera hadir)"><svg class="ic"><use href="#i-bell"/></svg></span>
+        <a class="bell" href="{% url 'notifikasi' %}" aria-label="Notifikasi{% if notif_belum %} ({{ notif_belum }} belum dibaca){% endif %}"><svg class="ic"><use href="#i-bell"/></svg>{% if notif_belum %}<span class="bell-dot" aria-hidden="true"></span>{% endif %}</a>
       </div>
       {% endblock %}
     </header>

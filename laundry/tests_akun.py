@@ -465,7 +465,7 @@ class NotifikasiTests(TestCase):
         b = buat_pesanan(self.user)                       # 60.000 -> 60 poin
         b.status = 'selesai'
         b.save()
-        self.assertIn('+60 poin', Notifikasi.objects.first().isi)
+        self.assertIn('+60 poin', Notifikasi.objects.get(judul='Pesanan selesai').isi)
 
     def test_belum_dibaca_dihitung_per_akun(self):
         buat_pesanan(self.user)
