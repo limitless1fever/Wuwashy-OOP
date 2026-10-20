@@ -307,3 +307,105 @@ a.poin-chip:hover { text-decoration: underline; }
   .ph-kosong { grid-column: auto; }
   .ph-head { flex-direction: column; align-items: flex-start; }
 }
+
+
+/* ---------- akun saya, alamat saya & pencarian (ukuran mengikuti desain Figma) ---------- */
+.ak-grid { display: grid; grid-template-columns: minmax(0, 1fr) 357px; gap: 12px; align-items: start; }
+.ak-side { display: grid; gap: 24px; }
+.ak-card { border-radius: 24px; display: grid; gap: 18px; align-content: start; }
+.ak-card h2 { font-size: 26px; line-height: 1.2; }
+.ak-profile { display: flex; align-items: flex-start; gap: 12px; }
+.ak-ava { display: grid; place-items: center; flex: none; width: 72px; height: 72px; border-radius: 50%; background: #83a7d9; color: var(--navy); font: 600 28px 'Outfit', sans-serif; }
+.ak-who { flex: 1; min-width: 0; align-self: stretch; display: flex; flex-direction: column; justify-content: space-between; }
+.ak-who strong { font: 400 24px/1.2 'Outfit', sans-serif; }
+.ak-who small { font-size: 11px; color: var(--ink-2); }
+.ak-photo { display: inline-flex; align-items: center; justify-content: center; flex: none; width: 120px; height: 44px; border: 1px solid var(--line); border-radius: 12px; background: #fff; color: var(--blue-ink); font-size: 12px; font-weight: 600; }
+.ak-photo.is-soon, .ak-ghost.is-soon { opacity: .55; cursor: default; }
+.ak-form { display: grid; gap: 18px; }
+.ak-row { display: flex; gap: 12px; }
+.ak-row > .ak-field { flex: 1; min-width: 0; }
+.ak-field label { display: block; margin-bottom: 8px; font-size: 12px; font-weight: 600; }
+.ak-field input, .ak-field textarea { width: 100%; min-height: 48px; padding: 14px; border: 1px solid var(--line); border-radius: 12px; background: var(--bg); font: inherit; font-size: 13px; line-height: 1.5; color: var(--navy); }
+.ak-field textarea { resize: vertical; }
+.ak-field input:focus, .ak-field textarea:focus { outline: 0; border-color: var(--blue); box-shadow: 0 0 0 3px rgba(30, 150, 252, .15); }
+.ak-field input[readonly] { color: var(--navy); cursor: default; }
+.ak-field.has-error input, .ak-field.has-error textarea { border-color: #d93a3a; }
+.ak-error { margin-top: 6px; font-size: 12px; color: #c62828; }
+.ak-hint { margin-top: 6px; font-size: 10px; color: var(--ink-2); }
+.ak-card > .ak-hint { margin: 0; font-size: 12px; }
+.ak-line { margin: 0; font-size: 11px; }
+.ak-divider { width: 100%; height: 1px; margin: 0; border: 0; background: var(--line); }
+.ak-actions { display: flex; flex-wrap: wrap; gap: 12px; }
+.ak-save, .ak-cancel { display: inline-flex; align-items: center; justify-content: center; height: 44px; border-radius: 12px; font: 600 12px 'Plus Jakarta Sans', sans-serif; text-decoration: none; cursor: pointer; }
+.ak-save { width: 180px; border: 1px solid var(--blue); background: var(--blue); color: #fff; }
+.ak-save:hover { background: #0f86ee; }
+.ak-cancel { width: 100px; border: 1px solid var(--line); background: #fff; color: var(--blue-ink); }
+.ak-cancel:hover { background: var(--bg); }
+.note-box.ak-ok { background: #eaf8d8; }
+.note-box.ak-ok .ic { color: #3f7d12; }
+
+.ak-points { display: grid; gap: 18px; padding: 24px; border-radius: 24px; background: var(--navy); color: #fff; }
+.ak-points h2 { font-size: 26px; line-height: 1.2; color: #fff; }
+.ak-points-row { display: flex; justify-content: space-between; align-items: flex-start; }
+.ak-points-row strong { font: 600 44px/1.25 'Outfit', sans-serif; }
+.ak-badge { padding: 6px 10px; border-radius: 999px; background: #f1fad7; color: #42702d; font-size: 11px; font-weight: 600; line-height: 14px; }
+.ak-points-label { font-size: 12px; color: #b6c6de; }
+.ak-points-label:last-child { font-size: 11px; }
+.ak-bar { height: 7px; border-radius: 100px; background: #34425a; }
+.ak-bar i { display: block; height: 100%; border-radius: 100px; background: var(--lime); }
+
+.ak-addr { display: grid; gap: 18px; padding: 24px; border: 1px solid var(--line); border-radius: 24px; background: var(--tint); }
+.ak-addr h2 { font-size: 26px; line-height: 1.2; }
+.ak-addr-name { font-size: 13px; font-weight: 600; }
+.ak-addr-line { font-size: 12px; }
+.ak-addr-meta { font-size: 11px; color: var(--ink-2); }
+.ak-pill { justify-self: start; padding: 6px 10px; border-radius: 999px; background: var(--tint); color: var(--blue-ink); font-size: 11px; font-weight: 600; }
+.ak-addr .ak-pill { background: #fff; }
+.ak-link { justify-self: start; font-size: 12px; font-weight: 600; color: var(--blue-ink); text-decoration: none; }
+.ak-link:hover { text-decoration: underline; }
+
+.ak-secure { display: grid; gap: 18px; padding: 24px; border: 1px solid var(--line); border-radius: 24px; background: #fff; }
+.ak-secure h2 { font-size: 26px; line-height: 1.2; }
+.ak-secure p { font-size: 12px; color: var(--ink-2); }
+.ak-ghost { display: flex; align-items: center; justify-content: center; height: 44px; border: 1px solid var(--line); border-radius: 12px; background: #fff; color: var(--blue-ink); font-size: 12px; font-weight: 600; }
+
+.address .addr-link { margin-left: auto; align-self: center; font-size: 12.5px; font-weight: 600; color: var(--blue-ink); text-decoration: none; white-space: nowrap; }
+.address[style*="block"] .addr-link { display: inline-block; margin-top: 10px; }
+.address .addr-link:hover { text-decoration: underline; }
+.cari-list { display: grid; gap: 24px; margin-top: 24px; }
+@media (max-width: 1000px) { .ak-grid { grid-template-columns: 1fr; gap: 24px; } }
+@media (max-width: 600px) { .ak-row { flex-direction: column; } .ak-profile { flex-wrap: wrap; } .ak-actions > * { flex: 1; } }
+
+
+/* ---------- alamat saya (ukuran mengikuti desain Figma) ---------- */
+.al-grid { display: grid; grid-template-columns: minmax(0, 530fr) minmax(0, 602fr); gap: 12px; align-items: start; }
+.al-left { display: grid; gap: 24px; }
+.al-card { border-radius: 24px; display: grid; gap: 18px; align-content: start; }
+.al-card h2 { font-size: 26px; line-height: 1.2; }
+.al-item { display: grid; gap: 18px; justify-items: start; }
+.al-item + .al-item { padding-top: 18px; border-top: 1px solid var(--line); }
+.al-badge { padding: 6px 10px; border-radius: 999px; background: #f1fad7; color: #42702d; font-size: 11px; font-weight: 600; line-height: 14px; }
+.al-title { font: 600 13px/1.5 'Plus Jakarta Sans', sans-serif; }
+.al-name { font-size: 13px; line-height: 1.5; }
+.al-name strong { font-weight: 600; }
+.al-line { font-size: 13px; line-height: 1.5; }
+.al-note { font-size: 11px; color: var(--ink-2); }
+.al-pill { padding: 6px 10px; border-radius: 999px; background: #eaf4ff; color: #1266b6; font-size: 11px; font-weight: 600; line-height: 14px; }
+.al-actions { display: flex; flex-wrap: wrap; align-items: flex-start; gap: 12px; }
+.al-actions form { margin: 0; }
+.al-btn { display: inline-flex; align-items: center; justify-content: center; height: 44px; padding: 0 24px; border: 1px solid var(--line); border-radius: 12px; background: #fff; color: #1266b6; font: 600 12px 'Plus Jakarta Sans', sans-serif; text-decoration: none; cursor: pointer; }
+.al-btn:hover { background: var(--bg); }
+.al-used { font-size: 11px; color: var(--ink-2); }
+.al-del { padding: 0; border: 0; background: none; color: #b84e4e; font: 400 11px 'Plus Jakarta Sans', sans-serif; cursor: pointer; }
+.al-del:hover { text-decoration: underline; }
+.al-empty { font-size: 13px; color: var(--ink-2); line-height: 1.6; }
+.al-notice { display: flex; align-items: flex-start; gap: 12px; padding: 16px; border-radius: 12px; background: #eaf4ff; font-size: 12px; line-height: 1.5; color: var(--navy); }
+.al-notice .ic { flex: none; width: 20px; height: 20px; color: #1266b6; }
+.al-check { display: flex; align-items: center; gap: 8px; font-size: 12px; }
+.al-check input { width: 16px; height: 16px; min-height: 0; padding: 0; accent-color: var(--blue); }
+.ak-field select { width: 100%; min-height: 48px; padding: 0 40px 0 14px; border: 1px solid var(--line); border-radius: 12px; background: var(--bg) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8' fill='none' stroke='%230B132B' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m1 1.5 5 5 5-5'/%3E%3C/svg%3E") no-repeat right 16px center; font: inherit; font-size: 13px; color: var(--navy); appearance: none; -webkit-appearance: none; }
+.ak-field select:focus { outline: 0; border-color: var(--blue); box-shadow: 0 0 0 3px rgba(30, 150, 252, .15); }
+.ak-field.has-error select { border-color: #d93a3a; }
+.note-box.ak-bad { background: #fdeaea; }
+.note-box.ak-bad .ic { color: #b84e4e; }
+@media (max-width: 1000px) { .al-grid { grid-template-columns: 1fr; gap: 24px; } }

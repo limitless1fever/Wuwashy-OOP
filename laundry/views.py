@@ -9,12 +9,12 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 
 from .decorators import admin_required
-from .forms import EMAIL_SUDAH_ADA, BookingForm, EmailLoginForm, SignUpForm
+from .forms import EMAIL_SUDAH_ADA, BookingForm, AlamatForm, EmailLoginForm, ProfilAkunForm, SignUpForm, TagihanForm
 from . import panel
 from .pesanan import konteks_pesanan_saya
-from .models import Booking, PoinLog, Profile
+from .models import Alamat, Booking, PoinLog, Profile, TagihanTerkunci
 from .poin import konteks_poin_hadiah, pesanan_aktif, saldo_poin, tautkan_booking
-from .services import SERVICES, rupiah
+from .services import MAKS_ALAMAT, PROVINSI, SERVICES, WILAYAH, rupiah
 
 KEUNGGULAN = [
     ('fitur-harga.jpg', 'Harga Transparan', 'Setiap timbangan disaksikan bersama dan tercatat detail di database sistem online.'),
@@ -79,7 +79,11 @@ def booking(request):
             awal['layanan'] = request.GET['layanan']
         if request.user.is_authenticated:  # pelanggan login: data dirinya terisi otomatis
             awal['nama'] = request.user.get_full_name().strip()
-            awal['whatsapp'] = Profile.untuk(request.user).whatsapp
+            profil = Profile.untuk(request.user)
+            awal['whatsapp'] = profil.whatsapp
+            utama = Alamat.utama_untuk(request.user)  # alamat utama dari halaman Alamat saya
+            if utama:
+                awal['alamat'] = utama.baris_alamat
         form = BookingForm(initial=awal or None)
     return render(request, 'laundry/booking.html', {'form': form})
 
@@ -101,7 +105,7 @@ def signup(request):
     """Daftar akun pelanggan baru, lalu langsung masuk ke dashboard."""
     if request.user.is_authenticated:
         return redirect('dashboard')
-    form = SignUpForm(request.POST or None)
+    form = SignUpForm(request.POST if request.method == 'POST' else None)
     if request.method == 'POST' and form.is_valid():
         try:
             with transaction.atomic():
@@ -128,6 +132,8 @@ def _konteks_dasar(user, role):
         'nama': nama,
         'nama_depan': nama_depan,
         'inisial': ''.join(kata[0] for kata in nama.split()[:2]).upper(),
+        'profil': Profile.untuk(user),
+        'alamat_utama': Alamat.utama_untuk(user),  # dipakai kartu alamat di beberapa halaman
     }
 
 
@@ -199,10 +205,54 @@ def _konteks_panel(request):
     }
 
 
+def _konteks_detail(request, b, tagihan_form):
+    """Konteks halaman detail pesanan admin (dipakai saat tampil biasa dan saat form tagihan salah isi)."""
+    log_poin = PoinLog.objects.filter(booking=b, jumlah__gt=0).first()
+    return {
+        **_konteks_panel(request),
+        'b': b,
+        'status_kunci': panel.kelompok_status(b.status)[0],
+        'pilihan_status': Booking.STATUS,
+        'log_poin': log_poin,
+        'saldo_pelanggan': saldo_poin(b.user_id) if b.user_id else None,
+        'tagihan_form': tagihan_form,
+        'tagihan_terkunci': b.tagihan_terkunci,
+    }
+
+
+def _form_tagihan_awal(b):
+    return TagihanForm(initial={
+        'berat_final': b.berat_efektif,
+        'koreksi_harga': b.koreksi_harga,
+        'catatan_koreksi': b.catatan_koreksi,
+    })
+
+
 @admin_required
 def admin_pesanan_detail(request, pk):
-    """Detail satu pesanan + form ubah status. Memakai .save() agar signal pemberi poin ikut jalan."""
+    """Detail satu pesanan + form ubah status + form tagihan (berat timbang & koreksi harga).
+
+    Keduanya memakai .save() lewat model agar signal pemberi poin dan notifikasi ikut jalan.
+    """
     b = get_object_or_404(Booking.objects.select_related('user'), pk=pk)
+
+    if request.method == 'POST' and request.POST.get('aksi') == 'tagihan':
+        form = TagihanForm(request.POST)
+        if form.is_valid():
+            sudah_dapat_poin = PoinLog.objects.filter(booking=b, jumlah__gt=0).exists()
+            try:
+                b.terapkan_tagihan(form.cleaned_data['berat_final'], form.cleaned_data['koreksi_harga'],
+                                   form.cleaned_data['catatan_koreksi'].strip())
+            except TagihanTerkunci as e:
+                messages.error(request, str(e))
+            else:
+                pesan = f'Tagihan {b.resi} diperbarui: Rp {b.total_fmt}.'
+                log = PoinLog.objects.filter(booking=b, jumlah__gt=0).first()
+                if log and not sudah_dapat_poin:
+                    pesan += f' +{log.jumlah} poin masuk ke {b.user.email}.'
+                messages.success(request, pesan)
+            return redirect('admin_pesanan_detail', pk=b.pk)
+        return render(request, 'laundry/admin_pesanan_detail.html', _konteks_detail(request, b, form))
 
     if request.method == 'POST':
         baru = request.POST.get('status', '')
@@ -228,12 +278,106 @@ def admin_pesanan_detail(request, pk):
             messages.success(request, pesan)
         return redirect('admin_pesanan_detail', pk=b.pk)
 
-    log_poin = PoinLog.objects.filter(booking=b, jumlah__gt=0).first()
-    return render(request, 'laundry/admin_pesanan_detail.html', {
-        **_konteks_panel(request),
-        'b': b,
-        'status_kunci': panel.kelompok_status(b.status)[0],
-        'pilihan_status': Booking.STATUS,
-        'log_poin': log_poin,
-        'saldo_pelanggan': saldo_poin(b.user_id) if b.user_id else None,
+    return render(request, 'laundry/admin_pesanan_detail.html', _konteks_detail(request, b, _form_tagihan_awal(b)))
+
+
+@login_required
+def akun_saya(request):
+    """Halaman "Akun saya": lihat dan ubah data pribadi, kontak, dan alamat antar-jemput."""
+    profil = Profile.untuk(request.user)
+    if profil.is_admin:
+        return redirect('admin_dashboard')
+
+    form = ProfilAkunForm(request.POST if request.method == 'POST' else None, user=request.user)
+    if request.method == 'POST' and form.is_valid():
+        form.simpan()
+        messages.success(request, 'Perubahan tersimpan.')
+        return redirect('akun_saya')
+
+    poin = saldo_poin(request.user.pk)
+    return render(request, 'laundry/akun_saya.html', {
+        **_konteks_dasar(request.user, profil.role),
+        'form': form,
+        'poin': poin,
+        'poin_persen': min(100, poin * 100 // POIN_TARGET),
+        'poin_sisa': max(0, POIN_TARGET - poin),
+        'poin_target': rupiah(POIN_TARGET),
+        'whatsapp_admin': settings.WHATSAPP_ADMIN,
+    })
+
+
+@login_required
+def cari_pesanan(request):
+    """Pencarian nomor pesanan di header dashboard (hanya pesanan milik akun yang login, semua status)."""
+    role = Profile.untuk(request.user).role
+    if role == Profile.Role.ADMIN:
+        return redirect('admin_dashboard')
+    q = request.GET.get('q', '').strip().lstrip('#').strip()
+    hasil = []
+    if q:
+        hasil = list(Booking.objects.filter(user=request.user, resi__icontains=q).order_by('-dibuat', '-id')[:20])
+    return render(request, 'laundry/cari_pesanan.html', {
+        **_konteks_dasar(request.user, role),
+        'q': q,
+        'hasil': hasil,
+        'whatsapp_admin': settings.WHATSAPP_ADMIN,
+    })
+
+
+def _ambil_alamat(queryset, mentah):
+    """Alamat milik akun dengan id `mentah` (teks dari form/URL); None bila kosong, bukan angka, atau bukan miliknya."""
+    try:
+        return queryset.filter(pk=int(mentah)).first()
+    except (TypeError, ValueError):
+        return None
+
+
+@login_required
+def alamat_saya(request):
+    """Halaman "Alamat saya": daftar alamat tersimpan + form tambah/ubah. Hanya menyentuh alamat milik akun sendiri."""
+    profil = Profile.untuk(request.user)
+    if profil.is_admin:
+        return redirect('admin_dashboard')
+    milik = Alamat.objects.filter(user=request.user)
+
+    if request.method == 'POST':
+        aksi = request.POST.get('aksi', 'simpan')
+        id_mentah = request.POST.get('alamat_id', '')
+        alamat = _ambil_alamat(milik, id_mentah)
+
+        if aksi in ('utama', 'hapus') or id_mentah:
+            if alamat is None:
+                messages.error(request, 'Alamat tidak ditemukan.')
+                return redirect('alamat_saya')
+            if aksi == 'utama':
+                alamat.jadikan_utama()
+                messages.success(request, f'"{alamat.label}" sekarang menjadi alamat utama.')
+                return redirect('alamat_saya')
+            if aksi == 'hapus':
+                label = alamat.label
+                alamat.hapus_dan_pilih_pengganti()
+                messages.success(request, f'Alamat "{label}" dihapus.')
+                return redirect('alamat_saya')
+
+        form = AlamatForm(request.POST, user=request.user, instance=alamat)
+        if form.is_valid():
+            form.simpan()
+            messages.success(request, 'Alamat diperbarui.' if alamat else 'Alamat baru tersimpan.')
+            return redirect('alamat_saya')
+        sedang_ubah = alamat
+    else:
+        sedang_ubah = _ambil_alamat(milik, request.GET.get('ubah'))
+        form = AlamatForm(user=request.user, instance=sedang_ubah)
+
+    daftar = list(milik)
+    return render(request, 'laundry/alamat_saya.html', {
+        **_konteks_dasar(request.user, profil.role),
+        'form': form,
+        'sedang_ubah': sedang_ubah,
+        'daftar_alamat': daftar,
+        'jumlah_alamat': len(daftar),
+        'maks_alamat': MAKS_ALAMAT,
+        'wilayah': WILAYAH,
+        'provinsi': PROVINSI,
+        'whatsapp_admin': settings.WHATSAPP_ADMIN,
     })

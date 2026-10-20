@@ -71,9 +71,14 @@
       <span class="address-icon" aria-hidden="true"><svg class="ic"><use href="#i-pin"/></svg></span>
       <div>
         <strong id="alamat">Alamat penjemputan</strong>
-        <p>Belum ada alamat tersimpan. Tulis alamat lengkapmu saat memesan agar kurir langsung meluncur.</p>
+        {% if alamat_utama %}
+        <p>{{ alamat_utama.label }} &middot; {{ alamat_utama.baris_alamat }}</p>
+        {% else %}
+        <p>Belum ada alamat tersimpan. Tambahkan alamat agar kurir langsung meluncur saat kamu booking.</p>
+        {% endif %}
         <p class="tag">Dalam radius 3 km &middot; Gratis antar-jemput</p>
       </div>
+      <a class="addr-link" href="{% url 'alamat_saya' %}">{% if alamat_utama %}Ubah{% else %}Tambah alamat{% endif %}</a>
     </section>
   </div>
 </div>
