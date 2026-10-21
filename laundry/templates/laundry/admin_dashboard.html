@@ -110,7 +110,7 @@
     </div>
     <div class="table-foot">
       <p>{% if terbaru %}Menampilkan 1&ndash;{{ jumlah_terbaru }} dari {{ jumlah_semua }} pesanan{% else %}Belum ada data{% endif %}</p>
-      <span class="link-soon dark" title="Segera hadir">Lihat Semua Pesanan <svg class="ic" aria-hidden="true"><use href="#i-arrow"/></svg></span>
+      <a class="link-go" href="{% url 'admin_pesanan' %}">Lihat Semua Pesanan <svg class="ic" aria-hidden="true"><use href="#i-arrow"/></svg></a>
     </div>
   </div>
 </section>
