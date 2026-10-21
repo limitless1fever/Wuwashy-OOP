@@ -280,5 +280,8 @@ class WaktuTampilDanMigrasiTests(TestCase):
         lama.refresh_from_db()
         lain.refresh_from_db()
         self.assertEqual((lama.tipe, lain.tipe), ('diproses', ''))
+        # Judul tipe 'menunggu' diganti sesudah migrasi 0008 dibuat; baris lama di database tetap memakai judul lama,
+        # jadi peta migrasi sengaja mempertahankannya.
+        judul_lama = {'menunggu': 'Pesanan diterima'}
         for judul, tipe in migrasi.JUDUL_KE_TIPE.items():
-            self.assertEqual(DAFTAR[tipe].judul, judul)  # peta migrasi tetap sama dengan judul di kode
+            self.assertEqual(judul_lama.get(tipe, DAFTAR[tipe].judul), judul)  # peta migrasi sama dengan judul di kode

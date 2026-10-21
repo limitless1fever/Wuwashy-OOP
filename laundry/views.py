@@ -11,7 +11,7 @@ from django.urls import reverse
 from .decorators import admin_required
 from .forms import EMAIL_SUDAH_ADA, BookingForm, AlamatForm, EmailLoginForm, ProfilAkunForm, SignUpForm, TagihanForm
 from . import panel
-from .pesanan import konteks_pesanan_saya
+from .pesanan import konteks_lacak_beranda, konteks_pesanan_saya
 from .kotak_notifikasi import KotakNotifikasi
 from .models import Alamat, Booking, Notifikasi, PoinLog, Profile, TagihanTerkunci
 from .poin import konteks_poin_hadiah, pesanan_aktif, saldo_poin, tautkan_booking
@@ -154,6 +154,7 @@ def dashboard(request):
         'poin': poin,
         'poin_target': rupiah(POIN_TARGET),
         'poin_persen': min(100, poin * 100 // POIN_TARGET),
+        **konteks_lacak_beranda(request.user),  # kartu "Lacak cucianmu": pesanan aktif + bar progres
         'whatsapp_admin': settings.WHATSAPP_ADMIN,
     })
 

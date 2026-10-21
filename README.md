@@ -88,9 +88,10 @@ Perintah ini membuat file `db.sqlite3` di folder proyek.
 ```bash
 python manage.py seed_users      # membuat 1 akun pelanggan dan 1 akun admin untuk uji coba
 python manage.py seed_pesanan    # opsional: 60 pesanan contoh agar dashboard admin terisi
+python manage.py seed_demo_pesanan   # opsional: 5 pesanan contoh (satu per tahap) untuk akun uji; lihat bar progres di Beranda
 ```
 
-Kedua perintah ini hanya untuk pengembangan. `seed_users` aman dijalankan berulang kali, sedangkan `seed_pesanan` menolak berjalan jika sudah ada pesanan, kecuali ditambah opsi `--force`.
+Perintah seed ini hanya untuk pengembangan. `seed_demo_pesanan` aman dijalankan berulang kali (contoh lama diganti), mendukung `--status dijemput` untuk satu pesanan saja, dan `--hapus` untuk membersihkannya. `seed_users` aman dijalankan berulang kali, sedangkan `seed_pesanan` menolak berjalan jika sudah ada pesanan, kecuali ditambah opsi `--force`.
 
 ### 6. Jalankan server
 

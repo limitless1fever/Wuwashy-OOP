@@ -61,9 +61,12 @@ class NotifBerbasisTeks(PembuatNotifikasi):
 
 
 class NotifDiterima(NotifBerbasisTeks):
+    """Dikirim saat pesanan baru dibuat (status 'menunggu'). Sengaja TIDAK menyebut penjemputan sebagai
+    sesuatu yang sedang terjadi: itu baru benar saat status berubah menjadi 'dijemput' (NotifDijemput)."""
+
     tipe, ikon = 'menunggu', 'i-clock'
-    judul = 'Pesanan diterima'
-    templat = 'Pesanan #{resi} ({layanan}) sudah kami terima. Kurir akan segera menjemput cucianmu.'
+    judul = 'Pesanan dibuat'
+    templat = 'Pesanan #{resi} ({layanan}) berhasil dibuat. Status: menunggu penjemputan.'
 
 
 class NotifDijemput(NotifBerbasisTeks):
