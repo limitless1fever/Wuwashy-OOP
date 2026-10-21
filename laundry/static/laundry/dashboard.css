@@ -483,3 +483,15 @@ a.poin-chip:hover { text-decoration: underline; }
 .al-btn:disabled, .al-btn.is-soon { opacity: .55; cursor: default; }
 .al-btn:disabled:hover, .al-btn.is-soon:hover { background: #fff; }
 @media (max-width: 1000px) { .nt-grid { grid-template-columns: 1fr; gap: 24px; } }
+
+
+/* ---------- Beranda: kartu "Lacak cucianmu" ---------- */
+.area-track .track-order { margin-top: 18px; }
+.area-track .track-order + .track-order { margin-top: 24px; padding-top: 24px; border-top: 1px solid var(--line); }
+.track-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; margin-bottom: 20px; }
+.track-top strong { display: block; font-size: 15px; }
+.track-top small { display: block; margin-top: 2px; font-size: 12px; color: var(--ink-2); }
+.track-link, .track-more { font-size: 12px; font-weight: 600; color: var(--blue-ink); text-decoration: none; white-space: nowrap; }
+.track-link:hover, .track-more:hover { text-decoration: underline; }
+.track-more { display: inline-block; margin-top: 18px; }
+.area-track .note-box { margin: 0; }

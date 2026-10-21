@@ -446,7 +446,7 @@ class NotifikasiTests(TestCase):
     def test_pesanan_baru_membuat_notifikasi_diterima(self):
         b = buat_pesanan(self.user)
         n = Notifikasi.objects.get()
-        self.assertEqual((n.user, n.booking, n.judul, n.dibaca), (self.user, b, 'Pesanan diterima', False))
+        self.assertEqual((n.user, n.booking, n.judul, n.dibaca), (self.user, b, 'Pesanan dibuat', False))
         self.assertIn(b.resi, n.isi)
 
     def test_perubahan_status_membuat_satu_notifikasi_dan_simpan_ulang_tidak_menggandakan(self):

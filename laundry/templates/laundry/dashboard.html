@@ -14,7 +14,10 @@
 
 <div class="grid">
   <section class="card area-track" aria-labelledby="lacak">
-    <div class="section-head" style="margin-bottom:0"><h2 id="lacak">Lacak cucianmu</h2></div>
+    <div class="section-head" style="margin-bottom:0"><h2 id="lacak">Lacak cucianmu</h2>{% if jumlah_aktif %}<span class="chip">{{ jumlah_aktif }} pesanan aktif</span>{% endif %}</div>
+    {% for b in lacak %}
+    {% include 'laundry/_progres_pesanan.html' %}
+    {% empty %}
     <div class="empty">
       <span class="empty-icon" aria-hidden="true"><svg class="ic"><use href="#i-logo"/></svg></span>
       <div>
@@ -23,6 +26,8 @@
       </div>
       <a class="btn-blue" href="{% url 'booking' %}">Pesan laundry</a>
     </div>
+    {% endfor %}
+    {% if lacak_sisa %}<a class="track-more" href="{% url 'pesanan_saya' %}">Lihat {{ lacak_sisa }} pesanan aktif lainnya &rarr;</a>{% endif %}
   </section>
 
   <aside class="points area-side" aria-labelledby="poin">
