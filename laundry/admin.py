@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import Alamat, Booking, Notifikasi, PoinLog, Profile
+from .models import Alamat, AnggotaTim, Booking, Notifikasi, PoinLog, Profile
 
 
 @admin.register(Booking)
@@ -39,3 +39,11 @@ class AlamatAdmin(admin.ModelAdmin):
     list_display = ('user', 'label', 'nama_penerima', 'kecamatan', 'kota', 'utama', 'dibuat')
     list_filter = ('utama', 'kota')
     search_fields = ('user__email', 'nama_penerima', 'alamat_lengkap')
+
+
+@admin.register(AnggotaTim)
+class AnggotaTimAdmin(admin.ModelAdmin):
+    list_display = ('nama', 'peran', 'email', 'telepon', 'aktif', 'dibuat')
+    list_editable = ('aktif',)
+    list_filter = ('peran', 'aktif')
+    search_fields = ('nama', 'email', 'telepon')
