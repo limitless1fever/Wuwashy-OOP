@@ -390,6 +390,90 @@ class TagihanForm(FormDasar):
         return data
 
 
+class UbahKataSandiForm(FormProfil):
+    """Form ganti kata sandi di halaman \"Pengaturan\".
+
+    OOP - Pewarisan: mewarisi FormProfil agar pola pengambilan user/profil seragam.
+    """
+
+    kata_sandi_lama = forms.CharField(
+        label='Kata sandi saat ini',
+        strip=False,
+        widget=forms.PasswordInput(attrs={'autocomplete': 'current-password', 'placeholder': 'Masukkan kata sandi saat ini'}),
+        error_messages={'required': 'Kata sandi saat ini wajib diisi.'},
+    )
+    kata_sandi_baru = forms.CharField(
+        label='Kata sandi baru',
+        strip=False,
+        widget=forms.PasswordInput(attrs={'autocomplete': 'new-password', 'placeholder': 'Minimal 8 karakter'}),
+        error_messages={'required': 'Kata sandi baru wajib diisi.'},
+    )
+    konfirmasi_sandi = forms.CharField(
+        label='Konfirmasi kata sandi baru',
+        strip=False,
+        widget=forms.PasswordInput(attrs={'autocomplete': 'new-password', 'placeholder': 'Ulangi kata sandi baru'}),
+        error_messages={'required': 'Konfirmasi kata sandi wajib diisi.'},
+    )
+
+    def clean_kata_sandi_lama(self):
+        lama = self.cleaned_data['kata_sandi_lama']
+        if not self._user.check_password(lama):
+            raise ValidationError('Kata sandi saat ini tidak cocok.')
+        return lama
+
+    def clean(self):
+        data = super().clean()
+        baru = data.get('kata_sandi_baru')
+        konfirmasi = data.get('konfirmasi_sandi')
+        if baru and konfirmasi and baru != konfirmasi:
+            self.add_error('konfirmasi_sandi', 'Konfirmasi kata sandi tidak cocok.')
+        elif baru:
+            try:
+                validate_password(baru, user=self._user)
+            except ValidationError as e:
+                self.add_error('kata_sandi_baru', e)
+        return data
+
+    def simpan(self):
+        self._user.set_password(self.cleaned_data['kata_sandi_baru'])
+        self._user.save(update_fields=['password'])
+        return self._user
+
+
+class NotifikasiForm(FormProfil):
+    """Form preferensi notifikasi di halaman \"Pengaturan\".
+
+    OOP - Pewarisan: mewarisi FormProfil agar pola pengambilan user/profil seragam.
+    """
+
+    notif_status_pesanan = forms.BooleanField(label='Update status pesanan', required=False)
+    notif_whatsapp = forms.BooleanField(label='Notifikasi WhatsApp', required=False)
+    notif_email = forms.BooleanField(label='Notifikasi Email', required=False)
+    notif_poin = forms.BooleanField(label='Info poin & hadiah', required=False)
+    notif_promo = forms.BooleanField(label='Promo & penawaran', required=False)
+
+    def _nilai_awal(self):
+        p = self._profile
+        return {
+            'notif_status_pesanan': p.notif_status_pesanan,
+            'notif_whatsapp': p.notif_whatsapp,
+            'notif_email': p.notif_email,
+            'notif_poin': p.notif_poin,
+            'notif_promo': p.notif_promo,
+        }
+
+    def simpan(self):
+        d = self.cleaned_data
+        p = self._profile
+        p.notif_status_pesanan = d['notif_status_pesanan']
+        p.notif_whatsapp = d['notif_whatsapp']
+        p.notif_email = d['notif_email']
+        p.notif_poin = d['notif_poin']
+        p.notif_promo = d['notif_promo']
+        p.save(update_fields=['notif_status_pesanan', 'notif_whatsapp', 'notif_email', 'notif_poin', 'notif_promo'])
+        return p
+
+
 class AnggotaTimForm(forms.ModelForm):
     """Form tambah dan edit anggota di panel admin (menu Anggota Tim)."""
 

@@ -17,6 +17,7 @@ urlpatterns = [
     path('riwayat/', views.riwayat_pesanan, name='riwayat_pesanan'),
     path('notifikasi/', views.notifikasi, name='notifikasi'),
     path('poin/', views.poin_hadiah, name='poin_hadiah'),
+    path('pengaturan/', views.pengaturan, name='pengaturan'),
     path('panel/', views.admin_dashboard, name='admin_dashboard'),
     path('panel/pesanan/', views.admin_pesanan, name='admin_pesanan'),
     path('panel/pesanan/menunggu/', views.admin_menunggu, name='admin_menunggu'),

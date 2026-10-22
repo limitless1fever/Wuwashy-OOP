@@ -10,7 +10,7 @@ from django.urls import reverse
 
 from .decorators import admin_required
 from .forms import (EMAIL_SUDAH_ADA, AlamatForm, AnggotaTimForm, BookingForm, EmailLoginForm,
-                    ProfilAkunForm, SignUpForm, TagihanForm)
+                    NotifikasiForm, ProfilAkunForm, SignUpForm, TagihanForm, UbahKataSandiForm)
 from . import panel, tim
 from .pesanan import konteks_lacak_beranda, konteks_pesanan_saya
 from .kotak_notifikasi import KotakNotifikasi
@@ -504,6 +504,49 @@ def riwayat_pesanan(request):
         'halaman': riwayat.halaman(request.GET.get('page')),
     })
 
+
+@login_required
+def pengaturan(request):
+    """Halaman \"Pengaturan\": ganti kata sandi dan preferensi notifikasi."""
+    role = Profile.untuk(request.user).role
+    if role == Profile.Role.ADMIN:
+        return redirect('admin_dashboard')
+
+    aksi = request.POST.get('aksi') if request.method == 'POST' else None
+
+    # Inisialisasi kedua form; hanya form yang disubmit yang diberi data POST
+    form_sandi = UbahKataSandiForm(
+        request.POST if aksi == 'ubah_sandi' else None,
+        user=request.user,
+    )
+    form_notif = NotifikasiForm(
+        request.POST if aksi == 'simpan_notif' else None,
+        user=request.user,
+    )
+
+    if aksi == 'ubah_sandi' and form_sandi.is_valid():
+        form_sandi.simpan()
+        from django.contrib.auth import update_session_auth_hash
+        update_session_auth_hash(request, request.user)
+        messages.success(request, 'Kata sandi berhasil diubah.')
+        return redirect('pengaturan')
+
+    if aksi == 'simpan_notif' and form_notif.is_valid():
+        form_notif.simpan()
+        messages.success(request, 'Preferensi notifikasi diperbarui.')
+        return redirect('pengaturan')
+
+    x_forwarded = request.META.get('HTTP_X_FORWARDED_FOR')
+    ip = x_forwarded.split(',')[0].strip() if x_forwarded else request.META.get('REMOTE_ADDR', '-')
+    sesi_aktif = [{'perangkat': 'Sesi ini', 'ip': ip, 'waktu': request.user.last_login, 'aktif': True}]
+
+    return render(request, 'laundry/pengaturan.html', {
+        **_konteks_dasar(request.user, role),
+        'form_sandi': form_sandi,
+        'form_notif': form_notif,
+        'sesi_aktif': sesi_aktif,
+        'whatsapp_admin': settings.WHATSAPP_ADMIN,
+    })
 
 @login_required
 def notifikasi(request):
