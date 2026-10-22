@@ -179,6 +179,12 @@ class Profile(models.Model):
     # Data halaman "Akun saya" (alamat ada di model Alamat).
     nama_panggilan = models.CharField(max_length=50, blank=True)
     tanggal_lahir = models.DateField(null=True, blank=True)
+    # Preferensi notifikasi (halaman "Pengaturan").
+    notif_status_pesanan = models.BooleanField(default=True)
+    notif_whatsapp = models.BooleanField(default=True)
+    notif_email = models.BooleanField(default=False)
+    notif_poin = models.BooleanField(default=True)
+    notif_promo = models.BooleanField(default=False)
 
     def save(self, *args, **kwargs):
         # Enkapsulasi: normalisasi nomor WA dijaga di dalam model, apa pun sumber datanya.
