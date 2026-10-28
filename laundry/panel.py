@@ -89,8 +89,8 @@ def ringkasan(sekarang=None):
     sumbu = skala_sumbu(max(nilai))
     puncak = sumbu[0] or 1
     batang = [
-        {'tanggal': t, 'jumlah': n, 'persen': round(n * 100 / puncak), 'label': i % 2 == 0}
-        for i, (t, n) in enumerate(zip(tanggal, nilai))
+        {'tanggal': t, 'jumlah': n, 'persen': round(n * 100 / puncak)}
+        for t, n in zip(tanggal, nilai)
     ]
 
     # --- sidebar: seluruh waktu ---
