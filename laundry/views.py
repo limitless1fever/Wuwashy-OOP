@@ -20,7 +20,7 @@ from .riwayat import RiwayatPesanan
 from .services import MAKS_ALAMAT, PROVINSI, SERVICES, WILAYAH, rupiah
 
 KEUNGGULAN = [
-    ('fitur-harga.jpg', 'Harga Transparan', 'Setiap timbangan disaksikan bersama dan tercatat detail di database sistem online.'),
+    ('fitur-harga.jpg', 'Harga Transparan', 'Setiap hitungan pakaian disaksikan bersama dan tercatat detail di database sistem online.'),
     ('fitur-garansi.jpg', 'Garansi Bersih', 'Kurang puas dengan cucian kami? Kami cuci ulang gratis tanpa biaya tambahan.'),
     ('fitur-poin.jpg', 'Poin Royalti', 'Setiap cuci dapat poin! Kumpulkan transaksinya, tukarkan diskon spesial, dan nikmati keuntungan eksklusif.'),
     ('fitur-wangi.jpg', 'Pewangi Premium', 'Parfum khusus berlisensi aman yang tercium harum segar hingga 14 hari pengerjaan.'),
@@ -71,9 +71,10 @@ def booking(request):
                 f'Nama: {b.nama}\n'
                 f'WhatsApp: {b.whatsapp}\n'
                 f'Layanan: {b.get_layanan_display()}\n'
-                f'Estimasi berat: {b.berat} kg\n'
+                f'Jumlah pakaian: {b.berat.normalize():f} pcs\n'
                 f'Alamat: {b.alamat}\n'
-                f'Catatan: {b.catatan or "-"}'
+                + (f'Titik peta: {b.link_peta}\n' if b.punya_titik else '')
+                + f'Catatan: {b.catatan or "-"}'
             )
             return redirect(f'https://wa.me/{settings.WHATSAPP_ADMIN}?text={quote(pesan)}')
     else:
@@ -87,6 +88,8 @@ def booking(request):
             utama = Alamat.utama_untuk(request.user)  # alamat utama dari halaman Alamat saya
             if utama:
                 awal['alamat'] = utama.baris_alamat
+                if utama.punya_titik:
+                    awal['latitude'], awal['longitude'] = utama.latitude, utama.longitude
         form = BookingForm(initial=awal or None)
     return render(request, 'laundry/booking.html', {'form': form})
 
