@@ -1,0 +1,20 @@
+{% load static %}
+<section class="layanan" id="services">
+  <div class="wrap">
+    <span class="pill">LAYANAN KAMI</span>
+    <h2 class="h2 center">Pilih Layanan Terbaik Untukmu</h2>
+    <p class="center small">Kami menyediakan berbagai opsi perawatan pakaian dengan harga bersahabat dan kualitas premium.</p>
+    <div class="svc-grid">
+      {% for s in layanan %}
+      <a class="svc" href="{% url 'booking' %}?layanan={{ s.key }}" aria-label="Booking {{ s.nama }}">
+        {% if s.badge %}<span class="badge">{{ s.badge }}</span>{% endif %}
+        {% if s.img %}<img class="svc-img" src="{% static 'laundry/img/' %}{{ s.img }}" alt="">{% else %}<div class="svc-img ph-photo" role="img" aria-label="Foto {{ s.nama }} belum tersedia">Photo</div>{% endif %}
+        <h3>{{ s.nama }}</h3>
+        <p class="price">Rp {{ s.harga_fmt }} <small>/{{ s.satuan }}</small></p>
+        <p class="desc">{{ s.desc }}</p>
+        <p class="eta"><svg class="ic"><use href="#i-clock"/></svg>{{ s.estimasi }}</p>
+      </a>
+      {% endfor %}
+    </div>
+  </div>
+</section>

@@ -12,18 +12,51 @@ from .models import Alamat, AnggotaTim, Booking, Profile
 from .services import MAKS_ALAMAT, PROVINSI, WILAYAH, normalisasi_wa
 
 
+class _TitikField(forms.DecimalField):
+    """Kolom koordinat tersembunyi. Titik peta hanya pelengkap: nilai rusak diabaikan (jadi kosong)
+    agar tidak membuat seluruh form gagal tanpa pesan yang terlihat."""
+
+    def __init__(self):
+        super().__init__(required=False, max_digits=9, decimal_places=6, widget=forms.HiddenInput())
+
+    def clean(self, value):
+        try:
+            return super().clean(value)
+        except ValidationError:
+            return None
+
+
+def _bersihkan_titik(data):
+    """Titik peta harus lengkap (lat & lng) dan di rentang bumi; kalau tidak, dibuang saja (alamat teks tetap sah)."""
+    lat, lng = data.get('latitude'), data.get('longitude')
+    if lat is None or lng is None or not (-90 <= lat <= 90 and -180 <= lng <= 180):
+        data['latitude'] = data['longitude'] = None
+    return data
+
+
 class BookingForm(forms.ModelForm):
+    # Opsional & tidak punya kolom sendiri: digabung ke `alamat` saat clean() agar kurir menerima satu alamat utuh.
+    detail_alamat = forms.CharField(
+        required=False,
+        max_length=120,
+        label='Detail Alamat (opsional)',
+        widget=forms.TextInput(attrs={'placeholder': 'Contoh: RT 05, No. 12, Gang Mawar, pagar hijau'}),
+    )
+
+    latitude = _TitikField()
+    longitude = _TitikField()
+
     def __init__(self, *args, **kwargs):
         kwargs.setdefault('label_suffix', '')
         super().__init__(*args, **kwargs)
 
     class Meta:
         model = Booking
-        fields = ['nama', 'whatsapp', 'layanan', 'berat', 'alamat', 'catatan']
+        fields = ['nama', 'whatsapp', 'layanan', 'berat', 'alamat', 'catatan', 'latitude', 'longitude']
         widgets = {
             'nama': forms.TextInput(attrs={'placeholder': 'Masukkan nama Anda...'}),
             'whatsapp': forms.TextInput(attrs={'placeholder': 'Contoh: 08123456xxx', 'inputmode': 'tel'}),
-            'berat': forms.NumberInput(attrs={'placeholder': 'Contoh: 4', 'step': '0.5', 'min': '1'}),
+            'berat': forms.NumberInput(attrs={'placeholder': 'Contoh: 4', 'step': '1', 'min': '1'}),
             'alamat': forms.TextInput(attrs={'placeholder': 'Tulis alamat lengkap penjemputan disini...'}),
             'catatan': forms.TextInput(attrs={'placeholder': 'Contoh: Jangan pakai pewangi, saya alergi'}),
         }
@@ -31,7 +64,7 @@ class BookingForm(forms.ModelForm):
             'nama': 'Nama Lengkap',
             'whatsapp': 'Nomor WhatsApp',
             'layanan': 'Pilihan Layanan',
-            'berat': 'Estimasi Berat (kg)',
+            'berat': 'Jumlah Pakaian (per pcs)',
             'alamat': 'Alamat Penjemputan',
             'catatan': 'Catatan Khusus',
         }
@@ -42,92 +75,100 @@ class BookingForm(forms.ModelForm):
             raise forms.ValidationError('Nomor WhatsApp tidak valid. Contoh: 08123456789')
         return nomor
 
+    def clean(self):
+        data = _bersihkan_titik(super().clean())
+        detail = ' '.join((data.get('detail_alamat') or '').split())
+        alamat = data.get('alamat')
+        if detail and alamat:
+            data['alamat'] = f'{detail} - {alamat}'
+        return data
+
 
 class EmailLoginForm(AuthenticationForm):
     username = forms.EmailField(
-        label='Email address',
+        label='Alamat email',
         widget=forms.EmailInput(attrs={
-            'placeholder': 'Enter your email address',
+            'placeholder': 'Masukkan alamat email Anda',
             'autocomplete': 'email',
             'autofocus': True,
         }),
         error_messages={
-            'required': 'Please enter your email address.',
-            'invalid': 'Please enter a valid email address.',
+            'required': 'Masukkan alamat email Anda.',
+            'invalid': 'Masukkan alamat email yang valid.',
         },
     )
     password = forms.CharField(
-        label='Password',
+        label='Kata sandi',
         strip=False,
         widget=forms.PasswordInput(attrs={
-            'placeholder': 'Enter your password',
+            'placeholder': 'Masukkan kata sandi Anda',
             'autocomplete': 'current-password',
         }),
-        error_messages={'required': 'Please enter your password.'},
+        error_messages={'required': 'Masukkan kata sandi Anda.'},
     )
-    remember_me = forms.BooleanField(label='Remember me', required=False, initial=True)
+    remember_me = forms.BooleanField(label='Ingat saya', required=False, initial=True)
 
     error_messages = {
-        'invalid_login': 'Incorrect email or password. Please try again.',
-        'inactive': 'This account is inactive.',
+        'invalid_login': 'Email atau kata sandi salah. Silakan coba lagi.',
+        'inactive': 'Akun ini tidak aktif.',
     }
 
 
-EMAIL_SUDAH_ADA = 'An account with this email already exists. Try logging in instead.'
+EMAIL_SUDAH_ADA = 'Akun dengan email ini sudah terdaftar. Silakan masuk saja.'
 
 
 class SignUpForm(forms.Form):
     """Pendaftaran pelanggan. Role TIDAK bisa diisi dari form: akun baru selalu USER."""
 
     full_name = forms.CharField(
-        label='Full name',
+        label='Nama lengkap',
         max_length=100,
         widget=forms.TextInput(attrs={
-            'placeholder': 'Enter your full name',
+            'placeholder': 'Masukkan nama lengkap Anda',
             'autocomplete': 'name',
             'autofocus': True,
         }),
-        error_messages={'required': 'Please enter your full name.'},
+        error_messages={'required': 'Masukkan nama lengkap Anda.'},
     )
     email = forms.EmailField(
-        label='Email address',
+        label='Alamat email',
         max_length=150,
         widget=forms.EmailInput(attrs={
-            'placeholder': 'Enter your email address',
+            'placeholder': 'Masukkan alamat email Anda',
             'autocomplete': 'email',
         }),
         error_messages={
-            'required': 'Please enter your email address.',
-            'invalid': 'Please enter a valid email address.',
+            'required': 'Masukkan alamat email Anda.',
+            'invalid': 'Masukkan alamat email yang valid.',
         },
     )
     whatsapp = forms.CharField(
-        label='WhatsApp number',
+        label='Nomor WhatsApp',
         max_length=20,
         widget=forms.TextInput(attrs={
-            'placeholder': 'e.g. 08123456789',
+            'placeholder': 'cth. 08123456789',
             'inputmode': 'tel',
             'autocomplete': 'tel',
         }),
-        error_messages={'required': 'Please enter your WhatsApp number.'},
+        error_messages={'required': 'Masukkan nomor WhatsApp Anda.'},
     )
     password1 = forms.CharField(
-        label='Password',
+        label='Kata sandi',
         strip=False,
         widget=forms.PasswordInput(attrs={
-            'placeholder': 'Create a password',
+            'placeholder': 'Buat kata sandi',
             'autocomplete': 'new-password',
         }),
-        error_messages={'required': 'Please create a password.'},
+        error_messages={'required': 'Buat kata sandi Anda.'},
     )
     password2 = forms.CharField(
-        label='Confirm password',
+        label='Konfirmasi kata sandi',
         strip=False,
         widget=forms.PasswordInput(attrs={
-            'placeholder': 'Re-enter your password',
+            'placeholder': 'Masukkan ulang kata sandi',
             'autocomplete': 'new-password',
         }),
-        error_messages={'required': 'Please confirm your password.'},
+        error_messages={'required': 'Konfirmasi kata sandi Anda.'},
     )
 
     def clean_full_name(self):
@@ -142,17 +183,17 @@ class SignUpForm(forms.Form):
     def clean_whatsapp(self):
         nomor = normalisasi_wa(self.cleaned_data['whatsapp'])
         if not nomor:
-            raise ValidationError('Please enter a valid WhatsApp number, e.g. 08123456789.')
+            raise ValidationError('Masukkan nomor WhatsApp yang valid, cth. 08123456789.')
         # satu nomor = satu akun, supaya pesanan tamu tidak salah tertaut
         if Profile.objects.filter(whatsapp=nomor).exists():
-            raise ValidationError('This WhatsApp number is already used by another account.')
+            raise ValidationError('Nomor WhatsApp ini sudah dipakai akun lain.')
         return nomor
 
     def clean(self):
         data = super().clean()
         pw1, pw2 = data.get('password1'), data.get('password2')
         if pw1 and pw2 and pw1 != pw2:
-            self.add_error('password2', "The two passwords don't match.")
+            self.add_error('password2', 'Kedua kata sandi tidak cocok.')
         elif pw1:
             # user sementara agar validator "password mirip data diri" ikut bekerja
             nama_depan = (data.get('full_name') or '').split(' ')[0]
@@ -281,6 +322,8 @@ class AlamatForm(forms.ModelForm):
     (termasuk memindahkan status "alamat utama") dibungkus method simpan().
     """
 
+    latitude = _TitikField()
+    longitude = _TitikField()
     kota = forms.ChoiceField(label='Kota', choices=[(k, k) for k in WILAYAH])
     kecamatan = forms.ChoiceField(label='Kecamatan',
                                   error_messages={'invalid_choice': 'Pilih kecamatan yang sesuai dengan kota.',
@@ -289,7 +332,8 @@ class AlamatForm(forms.ModelForm):
 
     class Meta:
         model = Alamat
-        fields = ['label', 'nama_penerima', 'whatsapp', 'alamat_lengkap', 'kecamatan', 'kota', 'kode_pos', 'catatan_kurir']
+        fields = ['label', 'nama_penerima', 'whatsapp', 'alamat_lengkap', 'kecamatan', 'kota', 'kode_pos', 'catatan_kurir',
+                  'latitude', 'longitude']
         labels = {'label': 'Label alamat', 'nama_penerima': 'Nama penerima', 'whatsapp': 'Nomor WhatsApp',
                   'alamat_lengkap': 'Alamat lengkap', 'kode_pos': 'Kode pos', 'catatan_kurir': 'Catatan untuk kurir'}
         widgets = {
@@ -349,7 +393,7 @@ class AlamatForm(forms.ModelForm):
         return kode
 
     def clean(self):
-        data = super().clean()
+        data = _bersihkan_titik(super().clean())
         if not self.instance.pk and Alamat.objects.filter(user=self._user).count() >= MAKS_ALAMAT:
             raise ValidationError(f'Alamat tersimpan sudah mencapai batas {MAKS_ALAMAT}. Hapus salah satu dulu.')
         return data
@@ -366,13 +410,13 @@ class AlamatForm(forms.ModelForm):
 
 
 class TagihanForm(FormDasar):
-    """Form admin: berat hasil timbang dan koreksi harga satu pesanan."""
+    """Form admin: jumlah pakaian hasil hitung dan koreksi harga satu pesanan."""
 
-    berat_final = forms.DecimalField(label='Berat/jumlah hasil timbang', max_digits=5, decimal_places=1,
+    berat_final = forms.DecimalField(label='Jumlah pakaian hasil hitung', max_digits=5, decimal_places=1,
                                      min_value=Decimal('0.1'),
                                      widget=forms.NumberInput(attrs={'step': '0.1', 'min': '0.1'}),
-                                     error_messages={'required': 'Isi berat/jumlah hasil timbang.',
-                                                     'min_value': 'Berat minimal 0,1.', 'invalid': 'Angka tidak valid.'})
+                                     error_messages={'required': 'Isi jumlah pakaian hasil hitung.',
+                                                     'min_value': 'Jumlah minimal 0,1.', 'invalid': 'Angka tidak valid.'})
     koreksi_harga = forms.IntegerField(label='Koreksi harga (Rp)', required=False, min_value=-10_000_000,
                                        max_value=10_000_000, initial=0,
                                        widget=forms.NumberInput(attrs={'step': '500'}),
